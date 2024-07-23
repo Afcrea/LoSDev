@@ -28,8 +28,14 @@ public class Attack : MonoBehaviour
         hasAnimator = TryGetComponent(out _animator);
 
         TurnClip = getAnimClip("turnSwordAttack");
+
+        if(!TurnClip)
+        {
+            Debug.Log("Clip Error");
+        }
     }
 
+    //Input system
     void OnAttack()
     {
         if(EquipWeapon.isMountSword)
@@ -38,19 +44,22 @@ public class Attack : MonoBehaviour
 
     IEnumerator TurnAttack()
     {
+        // 공중 및 공격 중엔 공격 안됨
         if(isAttack || !_thirdPersonController.Grounded) yield break;
 
         _animator.applyRootMotion = true;
         _animator.SetTrigger("turnAttack");
 
         isAttack = true;
-
+        
+        // 애니메이션 실행까지 대기
         while(!stateInfo.IsName("turnSwordAttack"))
         {
             stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
             yield return null;
         }
 
+        // 애니메이션 실행 시 속도 조절, 프레임 체크
         while (stateInfo.IsName("turnSwordAttack"))
         {
             stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
@@ -60,7 +69,7 @@ public class Attack : MonoBehaviour
             float speedMultiplier = speedCurve.Evaluate(normalizedTime);
             _animator.speed = baseSpeed * speedMultiplier;
 
-            if (currAnimFrame(stateInfo) == 129)
+            if (currAnimFrame(stateInfo, TurnClip) == 129)
             {
                 _animator.SetBool("ExitAttack", true);
             }
@@ -77,11 +86,14 @@ public class Attack : MonoBehaviour
         //for(int i = 0; i < 80; i++) yield return new WaitForEndOfFrame();
 
         isAttack = false;
+
+        yield return null;
     }
 
-    int currAnimFrame(AnimatorStateInfo currStateInfo)
+    // 애니메이션 클립을 가져와서 프레임 체크
+    public int currAnimFrame(AnimatorStateInfo currStateInfo, AnimationClip clip = null)
     {
-        float clipLength = TurnClip.length;
+        float clipLength = clip.length;
 
         // 현재 애니메이션의 진행 비율 (0에서 1 사이)
         float normalizedTime = currStateInfo.normalizedTime % 1f;
@@ -90,7 +102,7 @@ public class Attack : MonoBehaviour
         float currentTime = normalizedTime * clipLength;
 
         // 현재 애니메이션의 프레임 (초 단위로 계산 후 정수로 변환)
-        float frameRate = TurnClip.frameRate;
+        float frameRate = clip.frameRate;
         int currentFrame = Mathf.RoundToInt(currentTime * frameRate);
 
         // 디버그 로그로 현재 프레임 확인
@@ -99,7 +111,7 @@ public class Attack : MonoBehaviour
         return currentFrame;
     }
 
-    AnimationClip getAnimClip(string animName)
+    public AnimationClip getAnimClip(string animName)
     {
         // 애니메이터 컨트롤러에서 현재 상태의 애니메이션 클립을 가져오는 방법
         AnimatorController controller = _animator.runtimeAnimatorController as AnimatorController;
@@ -107,16 +119,37 @@ public class Attack : MonoBehaviour
         {
             foreach (var layer in controller.layers)
             {
-                foreach (var state in layer.stateMachine.states)
+                // 레이어의 최상위 상태 머신 탐색
+                AnimationClip clip = FindAnimationClipInStateMachine(layer.stateMachine, animName);
+                if (clip != null)
                 {
-                    if (state.state.nameHash == Animator.StringToHash(animName))
-                    {
-                        // 상태의 애니메이션 모션을 애니메이션 클립으로 변환
-                        AnimationClip clip = state.state.motion as AnimationClip;
-                        
-                        return clip;
-                    }
+                    return clip;
                 }
+            }
+        }
+
+        return null;
+    }
+
+    private AnimationClip FindAnimationClipInStateMachine(AnimatorStateMachine stateMachine, string animName)
+    {
+        foreach (var state in stateMachine.states)
+        {
+            if (state.state.nameHash == Animator.StringToHash(animName))
+            {
+                // 상태의 애니메이션 모션을 애니메이션 클립으로 변환
+                AnimationClip clip = state.state.motion as AnimationClip;
+                return clip;
+            }
+        }
+
+        // 서브 스테이트 머신을 재귀적으로 탐색
+        foreach (var subStateMachine in stateMachine.stateMachines)
+        {
+            AnimationClip clip = FindAnimationClipInStateMachine(subStateMachine.stateMachine, animName);
+            if (clip != null)
+            {
+                return clip;
             }
         }
 
