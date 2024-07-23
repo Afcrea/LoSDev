@@ -26,6 +26,7 @@ public class EquipWeapon : MonoBehaviour
         }
     }
 
+    // Input system
     void OnMount()
     {
         if (isMountSword)
