@@ -57,7 +57,7 @@ public class EquipWeapon : MonoBehaviour
         }
     }
 
-    Transform FindDeepChild(Transform parent, string name)
+    public Transform FindDeepChild(Transform parent, string name)
     {
         foreach (Transform child in parent)
         {

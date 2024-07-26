@@ -69,7 +69,7 @@ public class Attack : MonoBehaviour
             float speedMultiplier = speedCurve.Evaluate(normalizedTime);
             _animator.speed = baseSpeed * speedMultiplier;
 
-            if (currAnimFrame(stateInfo, TurnClip) == 129)
+            if (currAnimFrame(stateInfo, TurnClip) >= 129)
             {
                 _animator.SetBool("ExitAttack", true);
             }

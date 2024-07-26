@@ -1,6 +1,7 @@
 ﻿ using UnityEngine;
 #if ENABLE_INPUT_SYSTEM 
 using UnityEngine.InputSystem;
+using UnityEngine.XR;
 #endif
 
 /* Note: animations are called via the controller for both the character and capsule using animator null checks
@@ -106,12 +107,14 @@ namespace StarterAssets
         private StarterAssetsInputs _input;
         private GameObject _mainCamera;
         private Attack attack;
+        private Hang hang;
 
         private const float _threshold = 0.01f;
 
         private bool _hasAnimator;
 
         bool _isAttack;
+        bool _isHangStart;
 
         private bool IsCurrentDeviceMouse
         {
@@ -145,6 +148,7 @@ namespace StarterAssets
 #if ENABLE_INPUT_SYSTEM 
             _playerInput = GetComponent<PlayerInput>();
             attack = GetComponent<Attack>();
+            hang = GetComponent<Hang>();
 #else
 			Debug.LogError( "Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
 #endif
@@ -159,13 +163,16 @@ namespace StarterAssets
         private void Update()
         {
             _isAttack = attack.isAttack;
+            _isHangStart = hang.isHangStart;
             _hasAnimator = TryGetComponent(out _animator);
 
             JumpAndGravity();
             GroundedCheck();
 
-            if(!_isAttack) 
+            if(!_isAttack && !_isHangStart)
+            {
                 Move();
+            }                
         }
 
         private void LateUpdate()
